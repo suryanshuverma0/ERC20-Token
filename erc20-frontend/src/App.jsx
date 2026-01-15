@@ -27,6 +27,10 @@ export default function App() {
   const [recipient, setRecipient] = useState("");
   const [spendAmount, setSpendAmount] = useState("");
 
+  // direct transfer (self)
+  const [to, setTo] = useState("");
+  const [transferAmount, setTransferAmount] = useState("");
+
   // ---------------- CONNECT ----------------
   const connectWallet = async () => {
     const _provider = new ethers.BrowserProvider(window.ethereum);
@@ -124,7 +128,7 @@ export default function App() {
       });
 
       toast.success(
-        <a href={EXPLORER + tx.hash} target="_blank">
+        <a href={SEPOLIA_EXPLORER + tx.hash} target="_blank">
           View on Etherscan
         </a>
       );
@@ -133,6 +137,33 @@ export default function App() {
       loadAllowance();
     } catch (e) {
       toast.error(e.reason || "transferFrom failed");
+    }
+  };
+
+  // ---------------- DIRECT TRANSFER ----------------
+  const transfer = async () => {
+    try {
+      const value = ethers.parseUnits(transferAmount, decimals);
+
+      const gas = await contract.transfer.estimateGas(to, value);
+
+      const tx = await contract.transfer(to, value, { gasLimit: gas });
+
+      toast.promise(tx.wait(), {
+        loading: "Transferring tokens...",
+        success: "Transfer successful",
+        error: "Transfer failed",
+      });
+
+      toast.success(
+        <a href={SEPOLIA_EXPLORER + tx.hash} target="_blank">
+          View on Etherscan
+        </a>
+      );
+
+      loadToken();
+    } catch (e) {
+      toast.error(e.reason || "Transfer failed");
     }
   };
 
@@ -189,6 +220,13 @@ export default function App() {
               <Input placeholder="Recipient address" set={setRecipient} />
               <Input placeholder="Amount" set={setSpendAmount} />
               <Button onClick={transferFromOwner}>transferFrom</Button>
+            </Section>
+
+            {/* DIRECT TRANSFER */}
+            <Section title="Transfer Tokens">
+              <Input placeholder="Recipient address" set={setTo} />
+              <Input placeholder="Amount" set={setTransferAmount} />
+              <Button onClick={transfer}>Transfer</Button>
             </Section>
           </>
         )}
